@@ -1,61 +1,49 @@
 ARG NODE_VERSION=24
+ARG PNPM_VERSION=11.3.0
 
 ################################
-# Base: use pnpm via corepack
+# Base
 ################################
 FROM node:${NODE_VERSION}-slim AS base
-
+ARG PNPM_VERSION
 WORKDIR /app
-RUN corepack enable
-ENV PNPM_HOME="/pnpm"
-ENV PNPM_STORE_PATH="/pnpm-store"
-ENV PATH="$PNPM_HOME:$PATH"
+ENV PNPM_HOME="/pnpm" \
+    PNPM_STORE_PATH="/pnpm-store" \
+    PATH="/pnpm:$PATH"
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 ################################
-# Stage: pnpm fetch (cache dependencies)
-################################
-FROM base AS fetch
-
-COPY pnpm-lock.yaml ./
-RUN pnpm config set store-dir $PNPM_STORE_PATH && pnpm fetch
-
-################################
-# Stage: dependencies (install deps offline)
+# Dependencies
 ################################
 FROM base AS deps
-
-COPY --from=fetch /pnpm-store /pnpm-store
-RUN pnpm config set store-dir $PNPM_STORE_PATH
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --offline --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .npmrc* ./
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store \
+    pnpm config set store-dir "$PNPM_STORE_PATH" && \
+    pnpm fetch && \
+    pnpm install --frozen-lockfile --offline
 
 ################################
-# Stage: build
+# Build
 ################################
 FROM deps AS build
-
 COPY . .
-RUN pnpm build
-RUN pnpm prune --prod
+RUN pnpm build && pnpm prune --prod
 
 ################################
-# Stage: dev
+# Dev
 ################################
-FROM deps AS dev
-
-ENV NODE_ENV=development
+FROM base AS dev
+ENV NODE_ENV=development \
+    CI=true
 COPY . .
 CMD ["pnpm", "dev"]
 
 ################################
-# Stage: prod (distroless)
+# Prod
 ################################
 FROM gcr.io/distroless/nodejs${NODE_VERSION}-debian12:nonroot AS prod
-
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build --chown=65532:65532 /app/node_modules ./node_modules
-COPY --from=build --chown=65532:65532 /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
 CMD ["dist/index.js"]
-# Optional: its nice to implement some sort of healthcheck in your app
-# HEALTHCHECK --interval=30s --timeout=3s --start-period=5s CMD ["curl", "-f", "http://localhost:3000/healthz"] || exit 1

@@ -3,5 +3,9 @@ dist
 .git
 .gitignore
 Dockerfile*
-docker-compose*
+docker-compose*.yml
 .env
+.env.*
+.vscode
+.idea
+*.md
