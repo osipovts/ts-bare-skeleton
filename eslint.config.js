@@ -1,54 +1,66 @@
+// eslint.config.mjs
 import js from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import typescriptParser from '@typescript-eslint/parser';
+import { defineConfig } from 'eslint/config';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
-import prettierConfig from 'eslint-config-prettier';
+import tseslint from 'typescript-eslint';
 
-export default [
-  js.configs.recommended,
+export default defineConfig(
   {
-    files: ['**/*.ts'],
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**'],
+  },
+
+  js.configs.recommended,
+
+  {
+    files: ['**/*.{js,mjs,cjs,ts,mts,cts}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      parser: typescriptParser,
-      parserOptions: {
-        /* ... */
-      },
-      globals: {
-        ...globals.node,
-      },
+      globals: globals.node,
     },
     plugins: {
-      '@typescript-eslint': tseslint,
+      'simple-import-sort': simpleImportSort,
     },
     rules: {
-      ...tseslint.configs.recommended.rules,
-
-      '@typescript-eslint/no-unused-vars': ['warn', { 
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_' 
-      }],
-
-      '@typescript-eslint/no-explicit-any': 'warn',
-      'no-console': 'warn',
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
     },
   },
+
   {
-    files: ['**/*.js'],
+    files: ['**/*.{ts,mts,cts}'],
+    extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        ...globals.node,
+      parserOptions: {
+        projectService: true,
       },
     },
     rules: {
-      'no-console': 'warn',
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/strict-boolean-expressions': 'error',
     },
   },
-  prettierConfig,
+
   {
-    ignores: ['dist/', 'node_modules/'],
+    files: ['**/*.{js,mjs,cjs}'],
+    extends: [tseslint.configs.disableTypeChecked],
   },
-];
+);
