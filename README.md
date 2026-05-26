@@ -33,15 +33,26 @@ git push -u origin --tags
 
 # Docker
 
-- `docker compose up app-dev --build`: Run in dev mode
-- `docker compose up app-prod --build`: Run in prod mode
+Run in dev mode:
+
+```
+# install new packages (optional)
+docker compose --profile dev run --rm app-dev pnpm install
+# run
+docker compose --profile dev up app-dev
+```
+
+Run in prod mode
+
+```
+docker compose up -d app-prod --build
+```
 
 ## Notes
 
-1. Using `pnpm fetch` cache stage: offline installation (`--offline` flag) ensures build reliability and speed using cached layers.
+1. Using cached pnpm packages.
 2. Using distroless image in production to minimize image size.
 3. Using non-root user to improve security.
-4. Anonymous volume in dev mode prevents host OS from overwriting container `node_modules`.
 
 # VS Code tips
 
