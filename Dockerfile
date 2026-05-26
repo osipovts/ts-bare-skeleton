@@ -35,7 +35,6 @@ RUN pnpm build && pnpm prune --prod
 FROM base AS dev
 ENV NODE_ENV=development \
     CI=true
-COPY . .
 CMD ["pnpm", "dev"]
 
 ################################
